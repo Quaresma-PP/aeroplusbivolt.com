@@ -1,0 +1,1 @@
+$("body").append("<script class='importtoolsconfig' disable-devtool-auto src='js/disabledevtools.js' md5='xxx' url='xxx' tk-name='xxx' interval='xxx' disable-menu='false'  detectors='xxx' clear-log='false' disable-select='false' disable-copy='false' disable-cut='false' disable-paste='false' ></script><script >$('#body').addClass('no_brand');</script>");
