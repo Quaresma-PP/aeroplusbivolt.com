@@ -1146,7 +1146,78 @@
     
     
  
-    
+    <!-- First Click Tracker — colar antes do </body> da página de vendas -->
+<script>
+(function () {
+  // ===== CONFIG =====
+  var SUPABASE_URL = 'https://wyvsgwhfayweohjebpzk.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5dnNnd2hmYXl3ZW9oamVicHprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMDM0OTMsImV4cCI6MjEwODc3OTQ5M30.dv7vZez1mf4ni3UduCTQbJSoE-Is7JmMWUkjfKVuDTg';
+  var CHECKOUT_HOSTS = ['pagamentosprotegidos.com']; // domínio do checkout
+  var CHECKOUT_PARAM = 'src'; // parâmetro que o checkout repassa no webhook (src, sck...)
+  // ==================
+
+  var STORE = 'fc_data';
+  var qs = new URLSearchParams(location.search);
+
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+    });
+  }
+
+  var data;
+  try { data = JSON.parse(localStorage.getItem(STORE)); } catch (e) {}
+  if (!data || !data.vid) data = { vid: uuid(), hasFirst: false };
+
+  var visit = {
+    visitor_id: data.vid,
+    utm_source: qs.get('utm_source'),
+    utm_medium: qs.get('utm_medium'),
+    utm_campaign: qs.get('utm_campaign'),
+    utm_content: qs.get('utm_content'),
+    utm_term: qs.get('utm_term'),
+    fbclid: qs.get('fbclid'),
+    landing_url: location.href,
+    referrer: document.referrer || null,
+    user_agent: navigator.userAgent
+  };
+
+  // Primeiro clique = primeira vez que esse visitante chega vindo de anúncio
+  var fromAd = !!(visit.fbclid || visit.utm_source);
+  visit.is_first_touch = fromAd && !data.hasFirst;
+  if (visit.is_first_touch) data.hasFirst = true;
+
+  try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) {}
+
+  fetch(SUPABASE_URL + '/rest/v1/ad_clicks', {
+    method: 'POST',
+    keepalive: true,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(visit)
+  }).catch(function () {});
+
+  // Coloca o visitor_id no link do checkout na hora do clique
+  // (funciona também com botão que aparece depois, tipo delay do VTurb)
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    try {
+      var url = new URL(a.href);
+      var isCheckout = CHECKOUT_HOSTS.some(function (h) { return url.hostname.indexOf(h) !== -1; });
+      if (!isCheckout) return;
+      url.searchParams.set(CHECKOUT_PARAM, data.vid);
+      a.href = url.toString();
+    } catch (err) {}
+  }, true);
+})();
+</script>
     
     
   
